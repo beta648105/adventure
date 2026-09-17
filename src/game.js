@@ -1,6 +1,8 @@
-import { VIEW_W, VIEW_H, BG_COLOR, CHAR_W, CHAR_H } from './config.js';
+import { VIEW_W, VIEW_H, WORLD_W, WORLD_H, CHAR_W, CHAR_H, BG_COLOR } from './config.js';
 import { initInput, endFrame } from './input.js';
 import { Player } from './entities/player.js';
+import { Camera } from './camera.js';
+import { World } from './world.js';
 
 export class Game {
   constructor(canvas) {
@@ -11,11 +13,16 @@ export class Game {
     this.ctx = canvas.getContext('2d');
     this.ctx.imageSmoothingEnabled = false;   // 확대해도 도트가 뭉개지지 않게
 
-    // 화면 한가운데에서 시작
+    this.world = new World();
+
+    // 월드 한가운데에서 시작
     this.player = new Player(
-      Math.floor((VIEW_W - CHAR_W) / 2),
-      Math.floor((VIEW_H - CHAR_H) / 2),
+      Math.floor((WORLD_W - CHAR_W) / 2),
+      Math.floor((WORLD_H - CHAR_H) / 2),
     );
+
+    this.camera = new Camera();
+    this.camera.follow(this.player);
 
     this.lastTime = 0;
     this.loop = this.loop.bind(this);
@@ -55,12 +62,19 @@ export class Game {
 
   update(dt) {
     this.player.update(dt);
+    this.camera.follow(this.player);   // 플레이어가 움직인 뒤에 따라갑니다
   }
 
   draw() {
     const { ctx } = this;
+
+    // 월드 가장자리에서 카메라가 멈췄을 때 이전 프레임이 남지 않도록 먼저 지웁니다.
     ctx.fillStyle = BG_COLOR;
     ctx.fillRect(0, 0, VIEW_W, VIEW_H);
+
+    this.camera.apply(ctx);            // 여기서부터는 월드 좌표로 그립니다
+    this.world.draw(ctx, this.camera.bounds);
     this.player.draw(ctx);
+    this.camera.restore(ctx);
   }
 }

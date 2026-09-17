@@ -30,12 +30,23 @@ python -m http.server 8000
 
 ```
 index.html              캔버스 한 장
-src/config.js           해상도·속도 등 설정값
+src/config.js           해상도·월드 크기·속도 등 설정값
 src/input.js            키보드 입력
 src/sprites.js          8x16 도트 데이터 (문자열로 되어 있어 바로 수정 가능)
+src/camera.js           플레이어를 따라가는 카메라
+src/world.js            맵 배경 (지금은 격자만, 타일셋 붙일 자리)
 src/game.js             게임 루프
 src/entities/player.js  플레이어 이동·애니메이션
 ```
+
+## 화면과 월드
+
+화면에 보이는 영역은 320x180, 월드는 그 3x3 크기인 960x540입니다.
+카메라가 플레이어를 화면 한가운데 두고 따라가되, 월드 가장자리에서는 멈춥니다.
+크기는 `src/config.js`의 `VIEW_W` / `WORLD_W` 등에서 바꿉니다.
+
+배경 격자는 위치를 가늠하려고 임시로 그려둔 것입니다.
+타일셋이 준비되면 `src/world.js`의 `draw()` 안쪽만 갈아끼우면 됩니다.
 
 ## 배포
 

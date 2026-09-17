@@ -1,4 +1,4 @@
-import { CHAR_W, CHAR_H, VIEW_W, VIEW_H, WALK_SPEED, WALK_FRAME_TIME } from '../config.js';
+import { CHAR_W, CHAR_H, WORLD_W, WORLD_H, WALK_SPEED, WALK_FRAME_TIME } from '../config.js';
 import { isDown } from '../input.js';
 import { bakeCharacter } from '../sprites.js';
 
@@ -7,8 +7,10 @@ const FRAME_ORDER = [0, 1, 0, 1];
 
 export class Player {
   constructor(x, y) {
-    this.x = x;             // 왼쪽 위 기준 위치(논리 픽셀)
+    this.x = x;             // 월드 기준 위치(논리 픽셀), 왼쪽 위 모서리
     this.y = y;
+    this.w = CHAR_W;        // 카메라가 중심을 잡을 때 씁니다
+    this.h = CHAR_H;
     this.facing = 'down';   // 바라보는 방향
     this.moving = false;
     this.animTime = 0;
@@ -45,9 +47,9 @@ export class Player {
       this.animTime = 0;    // 멈추면 기본 자세로
     }
 
-    // 화면 밖으로 나가지 않게
-    this.x = Math.max(0, Math.min(VIEW_W - CHAR_W, this.x));
-    this.y = Math.max(0, Math.min(VIEW_H - CHAR_H, this.y));
+    // 월드 밖으로 나가지 않게
+    this.x = Math.max(0, Math.min(WORLD_W - CHAR_W, this.x));
+    this.y = Math.max(0, Math.min(WORLD_H - CHAR_H, this.y));
   }
 
   draw(ctx) {
