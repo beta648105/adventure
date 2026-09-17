@@ -30,7 +30,9 @@ python -m http.server 8000
 
 ```
 index.html              캔버스 한 장
-assets/player.png       캐릭터 스프라이트 시트 (16x16 x 3프레임)
+assets/sprites/         방향별 원본 그림 (여기에 새 그림을 넣습니다)
+assets/player.png       합쳐진 스프라이트 시트 (자동 생성)
+tools/build_sprites.py  원본들을 시트 한 장으로 합치는 스크립트
 src/config.js           해상도·월드 크기·속도 등 설정값
 src/input.js            키보드 입력
 src/assets.js           이미지 로더
@@ -52,16 +54,30 @@ src/entities/player.js  플레이어 이동·애니메이션
 
 ## 스프라이트
 
-`assets/player.png` = 16x16 프레임 3개가 가로로 붙은 시트입니다.
+원본은 `assets/sprites/` 에 방향별로 넣고, 스크립트로 한 장에 합쳐서 씁니다.
 
+```
+assets/sprites/player.png         정면 (기준. 반드시 필요)
+assets/sprites/player(back).png   뒷모습
+assets/sprites/player(left).png   왼쪽    - 아직 없음
+assets/sprites/player(right).png  오른쪽  - 아직 없음
+```
+
+새 그림을 넣은 뒤:
+
+```
+python tools/build_sprites.py
+```
+
+`assets/player.png` 가 다시 만들어집니다. 가로가 프레임, 세로가 방향(아래/위/왼쪽/오른쪽)입니다.
+아직 그림이 없는 방향은 정면 그림으로 채워집니다.
+
+- 한 프레임 16x16, 가로 3칸
 - 걷기: 1 → 2 → 3 → 2 순서로 한 장당 0.14초
 - 정지: 2번
 
-지금은 정면 그림만 있어서 위/좌/우로 갈 때도 같은 그림을 씁니다.
-방향별 시트가 생기면 `src/sprites.js`의 `SHEETS`에 경로만 추가하면 됩니다
-(주석으로 자리를 만들어 뒀습니다).
-
-프레임 크기를 바꿀 때는 `src/config.js`의 `CHAR_W` / `CHAR_H`를 같이 바꿔야 합니다.
+한쪽 옆모습만 그렸다면 `player(side).png` 로 두세요. 오른쪽으로 쓰고 왼쪽은 좌우 반전해서 만듭니다.
+프레임 크기를 바꿀 때는 `src/config.js` 의 `CHAR_W` / `CHAR_H` 를 같이 바꿔야 합니다.
 
 ## 배포
 

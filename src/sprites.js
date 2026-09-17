@@ -1,15 +1,12 @@
 import { CHAR_W, CHAR_H } from './config.js';
-import { loadImages } from './assets.js';
+import { loadImage } from './assets.js';
 
-// 방향별 스프라이트 시트. 가로로 프레임이 나열된 png입니다.
-// 지금은 정면(down) 그림만 있어서 나머지 방향도 같은 걸 씁니다.
-// up / left / right 그림이 생기면 아래에 경로만 추가하면 됩니다.
-export const SHEETS = {
-  down: 'assets/player.png',
-  // up:    'assets/player_up.png',
-  // left:  'assets/player_left.png',
-  // right: 'assets/player_right.png',
-};
+// 방향별 그림을 한 장으로 합친 시트. 가로 = 프레임, 세로 = 방향.
+// assets/sprites/ 의 원본들을 tools/build_sprites.py 로 합쳐서 만듭니다.
+export const SHEET = 'assets/player.png';
+
+// 시트의 줄 순서. tools/build_sprites.py 의 ROW_ORDER 와 같아야 합니다.
+export const ROW_ORDER = ['down', 'up', 'left', 'right'];
 
 // 걷기 순서: 1 → 2 → 3 → 2 (0부터 세는 번호라 0,1,2,1)
 export const WALK_ORDER = [0, 1, 2, 1];
@@ -18,20 +15,13 @@ export const WALK_ORDER = [0, 1, 2, 1];
 export const IDLE_FRAME = 1;
 
 /**
- * 가로로 늘어선 스프라이트 시트를 프레임 단위로 잘라 캔버스 배열로 만듭니다.
+ * 시트의 한 줄을 프레임 단위로 잘라 캔버스 배열로 만듭니다.
  * 매 프레임 잘라 쓰는 대신 미리 잘라두면 그리기가 단순해집니다.
  * @param {HTMLImageElement} image 시트 이미지
- * @param {boolean} flipX 좌우 반전 (옆모습을 반대편에 재활용할 때)
+ * @param {number} row 몇 번째 줄(방향)인지
+ * @param {number} count 가로 프레임 수
  */
-export function sliceSheet(image, flipX = false) {
-  if (image.width % CHAR_W !== 0 || image.height !== CHAR_H) {
-    console.warn(
-      `스프라이트 크기가 설정과 다릅니다. 이미지=${image.width}x${image.height}, `
-      + `기대값=${CHAR_W}의 배수 x ${CHAR_H}. config.js의 CHAR_W/CHAR_H를 확인하세요.`,
-    );
-  }
-
-  const count = Math.max(1, Math.floor(image.width / CHAR_W));
+export function sliceRow(image, row, count) {
   const frames = [];
 
   for (let i = 0; i < count; i++) {
@@ -40,33 +30,37 @@ export function sliceSheet(image, flipX = false) {
     canvas.height = CHAR_H;
     const ctx = canvas.getContext('2d');
     ctx.imageSmoothingEnabled = false;
-
-    if (flipX) {
-      ctx.translate(CHAR_W, 0);
-      ctx.scale(-1, 1);
-    }
-    // 시트에서 i번째 칸만 잘라서 그립니다.
-    ctx.drawImage(image, i * CHAR_W, 0, CHAR_W, CHAR_H, 0, 0, CHAR_W, CHAR_H);
+    // 시트에서 (i번째 칸, row번째 줄)만 잘라서 그립니다.
+    ctx.drawImage(image, i * CHAR_W, row * CHAR_H, CHAR_W, CHAR_H, 0, 0, CHAR_W, CHAR_H);
     frames.push(canvas);
   }
   return frames;
 }
 
-/**
- * 4방향 스프라이트를 모두 준비합니다.
- * 시트가 없는 방향은 정면 그림으로 대신합니다.
- */
+/** 시트를 불러와 방향별 프레임 묶음으로 만듭니다. */
 export async function loadCharacterSprites() {
-  const images = await loadImages(SHEETS);
-  const sliced = Object.fromEntries(
-    Object.entries(images).map(([dir, img]) => [dir, sliceSheet(img)]),
-  );
+  const image = await loadImage(SHEET);
 
-  const fallback = sliced.down;
-  return {
-    down: sliced.down,
-    up: sliced.up ?? fallback,
-    left: sliced.left ?? fallback,
-    right: sliced.right ?? fallback,
-  };
+  const count = Math.floor(image.width / CHAR_W);
+  const rows = Math.floor(image.height / CHAR_H);
+
+  if (count < 1 || rows < 1) {
+    throw new Error(
+      `스프라이트 시트가 프레임 크기보다 작습니다. `
+      + `이미지=${image.width}x${image.height}, 프레임=${CHAR_W}x${CHAR_H}`,
+    );
+  }
+  if (rows < ROW_ORDER.length) {
+    console.warn(
+      `시트에 ${rows}줄만 있습니다. ${ROW_ORDER.length}줄(${ROW_ORDER.join('/')})을 기대합니다. `
+      + `tools/build_sprites.py 를 다시 돌려보세요.`,
+    );
+  }
+
+  const sprites = {};
+  ROW_ORDER.forEach((direction, row) => {
+    // 줄이 모자라면 첫 줄(정면)로 대신합니다.
+    sprites[direction] = sliceRow(image, Math.min(row, rows - 1), count);
+  });
+  return sprites;
 }

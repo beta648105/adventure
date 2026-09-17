@@ -7,13 +7,3 @@ export function loadImage(src) {
     img.src = src;
   });
 }
-
-/**
- * { 이름: 경로 } 를 받아 { 이름: Image } 로 돌려줍니다.
- * @param {Record<string, string>} sources
- */
-export async function loadImages(sources) {
-  const names = Object.keys(sources);
-  const images = await Promise.all(names.map((n) => loadImage(sources[n])));
-  return Object.fromEntries(names.map((n, i) => [n, images[i]]));
-}
