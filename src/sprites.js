@@ -1,176 +1,72 @@
-// 8x16 기본 캐릭터 도트. 문자 한 글자 = 픽셀 한 개입니다.
-// 여기 글자만 바꿔도 캐릭터 모양이 바로 바뀝니다. (가로 8글자 / 세로 16줄 고정)
-//
-//   .  투명       h  머리카락    s  피부      o  눈/윤곽
-//   c  옷         p  바지        b  신발
+import { CHAR_W, CHAR_H } from './config.js';
+import { loadImages } from './assets.js';
 
-export const PALETTE = {
-  '.': null,
-  h: '#3b2a1e',
-  s: '#f0c8a0',
-  o: '#2a2119',
-  c: '#4a7ec8',
-  p: '#39405c',
-  b: '#2a2119',
+// 방향별 스프라이트 시트. 가로로 프레임이 나열된 png입니다.
+// 지금은 정면(down) 그림만 있어서 나머지 방향도 같은 걸 씁니다.
+// up / left / right 그림이 생기면 아래에 경로만 추가하면 됩니다.
+export const SHEETS = {
+  down: 'assets/player.png',
+  // up:    'assets/player_up.png',
+  // left:  'assets/player_left.png',
+  // right: 'assets/player_right.png',
 };
 
-// 정면(아래를 볼 때) - 서 있는 자세
-const DOWN_IDLE = [
-  '..hhhh..',
-  '.hhhhhh.',
-  '.hhhhhh.',
-  '.ssssss.',
-  '.sossos.',
-  '.ssssss.',
-  '..ssss..',
-  '.cccccc.',
-  'sccccccs',
-  'sccccccs',
-  '.cccccc.',
-  '.pppppp.',
-  '.pp..pp.',
-  '.pp..pp.',
-  '.pp..pp.',
-  '.bb..bb.',
-];
+// 걷기 순서: 1 → 2 → 3 → 2 (0부터 세는 번호라 0,1,2,1)
+export const WALK_ORDER = [0, 1, 2, 1];
 
-// 정면 - 걷는 자세 (다리 벌림)
-const DOWN_WALK = [
-  '..hhhh..',
-  '.hhhhhh.',
-  '.hhhhhh.',
-  '.ssssss.',
-  '.sossos.',
-  '.ssssss.',
-  '..ssss..',
-  '.cccccc.',
-  '.cccccc.',
-  'scccccc.',
-  '.ccccccs',
-  '.pppppp.',
-  '.pppppp.',
-  '.pp..pp.',
-  '.pp...pp',
-  'bb....bb',
-];
-
-// 뒷모습(위를 볼 때) - 얼굴이 없습니다
-const UP_IDLE = [
-  '..hhhh..',
-  '.hhhhhh.',
-  '.hhhhhh.',
-  '.hhhhhh.',
-  '.hhhhhh.',
-  '.hhhhhh.',
-  '..ssss..',
-  '.cccccc.',
-  'sccccccs',
-  'sccccccs',
-  '.cccccc.',
-  '.pppppp.',
-  '.pp..pp.',
-  '.pp..pp.',
-  '.pp..pp.',
-  '.bb..bb.',
-];
-
-const UP_WALK = [
-  '..hhhh..',
-  '.hhhhhh.',
-  '.hhhhhh.',
-  '.hhhhhh.',
-  '.hhhhhh.',
-  '.hhhhhh.',
-  '..ssss..',
-  '.cccccc.',
-  '.cccccc.',
-  'scccccc.',
-  '.ccccccs',
-  '.pppppp.',
-  '.pppppp.',
-  '.pp..pp.',
-  '.pp...pp',
-  'bb....bb',
-];
-
-// 오른쪽을 볼 때. 왼쪽은 이걸 좌우 반전해서 씁니다.
-const RIGHT_IDLE = [
-  '..hhhh..',
-  '.hhhhhh.',
-  '.hhhhhhh',
-  '..sssshh',
-  '..sossh.',
-  '..sssss.',
-  '..ssss..',
-  '..cccc..',
-  '..ccccs.',
-  '..ccccs.',
-  '..cccc..',
-  '..pppp..',
-  '..pppp..',
-  '..pppp..',
-  '..pp.pp.',
-  '..bb.bb.',
-];
-
-const RIGHT_WALK = [
-  '..hhhh..',
-  '.hhhhhh.',
-  '.hhhhhhh',
-  '..sssshh',
-  '..sossh.',
-  '..sssss.',
-  '..ssss..',
-  '..cccc..',
-  '..cccc..',
-  '..cccccs',
-  '..cccc..',
-  '..pppp..',
-  '..pppp..',
-  '.ppppp..',
-  '.pp..pp.',
-  'bb....bb',
-];
-
-// 방향별 애니메이션 프레임. [기본, 걷기1, 기본, 걷기2] 4프레임 순환입니다.
-export const CHARACTER_FRAMES = {
-  down:  [DOWN_IDLE, DOWN_WALK],
-  up:    [UP_IDLE, UP_WALK],
-  right: [RIGHT_IDLE, RIGHT_WALK],
-};
+// 가만히 서 있을 때의 프레임: 2번 그림
+export const IDLE_FRAME = 1;
 
 /**
- * 도트 문자열을 오프스크린 캔버스로 구워둡니다.
- * 매 프레임 픽셀을 하나씩 찍으면 느리니까, 미리 그려놓고 통째로 복사합니다.
- * @param {string[]} rows 도트 문자열
- * @param {boolean} flipX 좌우 반전 여부
+ * 가로로 늘어선 스프라이트 시트를 프레임 단위로 잘라 캔버스 배열로 만듭니다.
+ * 매 프레임 잘라 쓰는 대신 미리 잘라두면 그리기가 단순해집니다.
+ * @param {HTMLImageElement} image 시트 이미지
+ * @param {boolean} flipX 좌우 반전 (옆모습을 반대편에 재활용할 때)
  */
-export function bake(rows, flipX = false) {
-  const w = rows[0].length;
-  const h = rows.length;
-  const canvas = document.createElement('canvas');
-  canvas.width = w;
-  canvas.height = h;
-  const ctx = canvas.getContext('2d');
-
-  for (let y = 0; y < h; y++) {
-    for (let x = 0; x < w; x++) {
-      const color = PALETTE[rows[y][x]];
-      if (!color) continue;
-      ctx.fillStyle = color;
-      ctx.fillRect(flipX ? w - 1 - x : x, y, 1, 1);
-    }
+export function sliceSheet(image, flipX = false) {
+  if (image.width % CHAR_W !== 0 || image.height !== CHAR_H) {
+    console.warn(
+      `스프라이트 크기가 설정과 다릅니다. 이미지=${image.width}x${image.height}, `
+      + `기대값=${CHAR_W}의 배수 x ${CHAR_H}. config.js의 CHAR_W/CHAR_H를 확인하세요.`,
+    );
   }
-  return canvas;
+
+  const count = Math.max(1, Math.floor(image.width / CHAR_W));
+  const frames = [];
+
+  for (let i = 0; i < count; i++) {
+    const canvas = document.createElement('canvas');
+    canvas.width = CHAR_W;
+    canvas.height = CHAR_H;
+    const ctx = canvas.getContext('2d');
+    ctx.imageSmoothingEnabled = false;
+
+    if (flipX) {
+      ctx.translate(CHAR_W, 0);
+      ctx.scale(-1, 1);
+    }
+    // 시트에서 i번째 칸만 잘라서 그립니다.
+    ctx.drawImage(image, i * CHAR_W, 0, CHAR_W, CHAR_H, 0, 0, CHAR_W, CHAR_H);
+    frames.push(canvas);
+  }
+  return frames;
 }
 
-/** 4방향 x 2프레임 스프라이트를 전부 구워서 돌려줍니다. */
-export function bakeCharacter() {
-  const { down, up, right } = CHARACTER_FRAMES;
+/**
+ * 4방향 스프라이트를 모두 준비합니다.
+ * 시트가 없는 방향은 정면 그림으로 대신합니다.
+ */
+export async function loadCharacterSprites() {
+  const images = await loadImages(SHEETS);
+  const sliced = Object.fromEntries(
+    Object.entries(images).map(([dir, img]) => [dir, sliceSheet(img)]),
+  );
+
+  const fallback = sliced.down;
   return {
-    down: down.map((f) => bake(f)),
-    up: up.map((f) => bake(f)),
-    right: right.map((f) => bake(f)),
-    left: right.map((f) => bake(f, true)),   // 오른쪽 스프라이트를 반전
+    down: sliced.down,
+    up: sliced.up ?? fallback,
+    left: sliced.left ?? fallback,
+    right: sliced.right ?? fallback,
   };
 }

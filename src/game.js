@@ -3,6 +3,7 @@ import { initInput, endFrame } from './input.js';
 import { Player } from './entities/player.js';
 import { Camera } from './camera.js';
 import { World } from './world.js';
+import { loadCharacterSprites } from './sprites.js';
 
 export class Game {
   constructor(canvas) {
@@ -14,21 +15,25 @@ export class Game {
     this.ctx.imageSmoothingEnabled = false;   // 확대해도 도트가 뭉개지지 않게
 
     this.world = new World();
-
-    // 월드 한가운데에서 시작
-    this.player = new Player(
-      Math.floor((WORLD_W - CHAR_W) / 2),
-      Math.floor((WORLD_H - CHAR_H) / 2),
-    );
-
     this.camera = new Camera();
-    this.camera.follow(this.player);
+    this.player = null;        // 스프라이트를 불러온 뒤에 만듭니다
 
     this.lastTime = 0;
     this.loop = this.loop.bind(this);
   }
 
-  start() {
+  /** 스프라이트를 다 불러온 뒤에 루프를 시작합니다. */
+  async start() {
+    const sprites = await loadCharacterSprites();
+
+    // 월드 한가운데에서 시작
+    this.player = new Player(
+      Math.floor((WORLD_W - CHAR_W) / 2),
+      Math.floor((WORLD_H - CHAR_H) / 2),
+      sprites,
+    );
+    this.camera.follow(this.player);
+
     initInput();
     this.resize();
     window.addEventListener('resize', () => this.resize());

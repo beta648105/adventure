@@ -30,9 +30,11 @@ python -m http.server 8000
 
 ```
 index.html              캔버스 한 장
+assets/player.png       캐릭터 스프라이트 시트 (16x16 x 3프레임)
 src/config.js           해상도·월드 크기·속도 등 설정값
 src/input.js            키보드 입력
-src/sprites.js          8x16 도트 데이터 (문자열로 되어 있어 바로 수정 가능)
+src/assets.js           이미지 로더
+src/sprites.js          스프라이트 시트 자르기 / 애니메이션 순서
 src/camera.js           플레이어를 따라가는 카메라
 src/world.js            맵 배경 (지금은 격자만, 타일셋 붙일 자리)
 src/game.js             게임 루프
@@ -47,6 +49,19 @@ src/entities/player.js  플레이어 이동·애니메이션
 
 배경 격자는 위치를 가늠하려고 임시로 그려둔 것입니다.
 타일셋이 준비되면 `src/world.js`의 `draw()` 안쪽만 갈아끼우면 됩니다.
+
+## 스프라이트
+
+`assets/player.png` = 16x16 프레임 3개가 가로로 붙은 시트입니다.
+
+- 걷기: 1 → 2 → 3 → 2 순서로 한 장당 0.14초
+- 정지: 2번
+
+지금은 정면 그림만 있어서 위/좌/우로 갈 때도 같은 그림을 씁니다.
+방향별 시트가 생기면 `src/sprites.js`의 `SHEETS`에 경로만 추가하면 됩니다
+(주석으로 자리를 만들어 뒀습니다).
+
+프레임 크기를 바꿀 때는 `src/config.js`의 `CHAR_W` / `CHAR_H`를 같이 바꿔야 합니다.
 
 ## 배포
 

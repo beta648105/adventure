@@ -1,12 +1,14 @@
 import { CHAR_W, CHAR_H, WORLD_W, WORLD_H, WALK_SPEED, WALK_FRAME_TIME } from '../config.js';
 import { isDown } from '../input.js';
-import { bakeCharacter } from '../sprites.js';
-
-// 4프레임 순환: 기본 → 걷기1 → 기본 → 걷기2
-const FRAME_ORDER = [0, 1, 0, 1];
+import { WALK_ORDER, IDLE_FRAME } from '../sprites.js';
 
 export class Player {
-  constructor(x, y) {
+  /**
+   * @param {number} x 월드 기준 위치
+   * @param {number} y
+   * @param {Record<string, HTMLCanvasElement[]>} sprites 방향별 프레임 묶음
+   */
+  constructor(x, y, sprites) {
     this.x = x;             // 월드 기준 위치(논리 픽셀), 왼쪽 위 모서리
     this.y = y;
     this.w = CHAR_W;        // 카메라가 중심을 잡을 때 씁니다
@@ -14,7 +16,7 @@ export class Player {
     this.facing = 'down';   // 바라보는 방향
     this.moving = false;
     this.animTime = 0;
-    this.sprites = bakeCharacter();
+    this.sprites = sprites;
   }
 
   update(dt) {
@@ -44,7 +46,7 @@ export class Player {
 
       this.animTime += dt;
     } else {
-      this.animTime = 0;    // 멈추면 기본 자세로
+      this.animTime = 0;    // 멈추면 서 있는 자세로
     }
 
     // 월드 밖으로 나가지 않게
@@ -52,13 +54,18 @@ export class Player {
     this.y = Math.max(0, Math.min(WORLD_H - CHAR_H, this.y));
   }
 
+  /** 지금 그려야 할 프레임 번호 */
+  get frameIndex() {
+    if (!this.moving) return IDLE_FRAME;
+    const step = Math.floor(this.animTime / WALK_FRAME_TIME) % WALK_ORDER.length;
+    return WALK_ORDER[step];
+  }
+
   draw(ctx) {
     const frames = this.sprites[this.facing];
-    const step = this.moving
-      ? FRAME_ORDER[Math.floor(this.animTime / WALK_FRAME_TIME) % FRAME_ORDER.length]
-      : 0;
+    const frame = frames[Math.min(this.frameIndex, frames.length - 1)];
 
     // 좌표를 정수로 반올림해야 픽셀이 흐려지지 않습니다.
-    ctx.drawImage(frames[step], Math.round(this.x), Math.round(this.y), CHAR_W, CHAR_H);
+    ctx.drawImage(frame, Math.round(this.x), Math.round(this.y), CHAR_W, CHAR_H);
   }
 }

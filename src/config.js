@@ -12,8 +12,8 @@ export const TILE = 16;
 export const WORLD_W = VIEW_W * 3;   // 960
 export const WORLD_H = VIEW_H * 3;   // 540
 
-// 기본 캐릭터 크기 (8 x 16)
-export const CHAR_W = 8;
+// 캐릭터 한 프레임 크기 (assets/player.png 기준 16 x 16)
+export const CHAR_W = 16;
 export const CHAR_H = 16;
 
 // 이동 속도 (논리 픽셀 / 초)
