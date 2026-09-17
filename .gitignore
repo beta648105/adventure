@@ -1,0 +1,11 @@
+# OS / 편집기
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+
+# 작업용 임시 파일
+*.tmp
+*.bak
+*~
